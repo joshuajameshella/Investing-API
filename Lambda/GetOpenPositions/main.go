@@ -2,7 +2,7 @@ package main
 
 import (
 	"Investing-API/Lambda/lambdaHandler"
-	"Investing-API/database"
+	"Investing-API/common/database"
 	"log"
 	"net/http"
 
