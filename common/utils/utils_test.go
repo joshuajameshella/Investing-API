@@ -1,10 +1,13 @@
 package utils
 
 import (
-	"github.com/stretchr/testify/assert"
+	"Investing-API/common/database"
+	"Investing-API/common/types"
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestCanRun checks that only days following a weekday can run the code.
@@ -64,6 +67,111 @@ func TestYesterdaysDate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			calculatedDate := GetYesterdaysDate(testCase.inputDate)
 			assert.Equal(t, testCase.expectedDate, calculatedDate)
+		})
+	}
+}
+
+// TestCombinePositions ensures that adding to a position returns the correct updated value.
+func TestCombinePositions(t *testing.T) {
+	tests := map[string]struct {
+		openPosition             database.OpenStockPosition
+		newTrade                 types.NewStockTrade
+		expectedCombinedPosition database.OpenStockPosition
+	}{
+		"General Check": {
+			database.OpenStockPosition{
+				PK:                  "OPEN-POSITION",
+				SK:                  "AAPL",
+				PurchaseValue:       150.00,
+				PortfolioPercentage: 1.0000,
+				AveragePrice:        150.00,
+				PercentageReturn:    0.1000,
+				Shares:              1,
+				CurrentValue:        150.00,
+			},
+			types.NewStockTrade{
+				Symbol:   "AAPL",
+				Quantity: 1,
+				Price:    200.00,
+			},
+			database.OpenStockPosition{
+				PK:                  "OPEN-POSITION",
+				SK:                  "AAPL",
+				PurchaseValue:       350.00,
+				PortfolioPercentage: 1.0000,
+				AveragePrice:        175.00,
+				PercentageReturn:    0.1000,
+				Shares:              2,
+				CurrentValue:        150.00,
+			},
+		},
+	}
+	for name, testCase := range tests {
+		t.Run(name, func(t *testing.T) {
+			combinedPosition := CombinePositions(testCase.openPosition, testCase.newTrade)
+			assert.Equal(t, testCase.expectedCombinedPosition, combinedPosition)
+		})
+	}
+}
+
+// TestRoundToPrecision checks that the float-rounding function performs as expected.
+func TestRoundToPrecision(t *testing.T) {
+	tests := map[string]struct {
+		inputFloat     float64
+		inputPrecision uint
+		expectedOutput float64
+	}{
+		"General Check":    {100.01233, 2, 100.01},
+		"No Precision":     {100, 0, 100},
+		"High Precision":   {100, 5, 100.00000},
+		"Round Up Decimal": {52.389123, 2, 52.39},
+		"Round Up":         {52.9999, 1, 53.0},
+	}
+
+	for name, testCase := range tests {
+		t.Run(name, func(t *testing.T) {
+			roundedValue := RoundToPrecision(testCase.inputFloat, testCase.inputPrecision)
+			assert.Equal(t, testCase.expectedOutput, roundedValue)
+		})
+	}
+}
+
+// TestCalculatePortfolioRatio takes example positions and checks the calculated portfolio sizes match the expected values.
+func TestCalculatePortfolioRatio(t *testing.T) {
+	tests := map[string]struct {
+		openPositions          []database.OpenStockPosition
+		expectedPositionRatios []database.OpenStockPosition
+	}{
+		"Test 1": {
+			[]database.OpenStockPosition{
+				{SK: "CASH", PurchaseValue: 1000},
+				{SK: "AAPL", PurchaseValue: 100},
+				{SK: "TSLA", PurchaseValue: 100},
+			},
+			[]database.OpenStockPosition{
+				{SK: "CASH", PurchaseValue: 1000, PortfolioPercentage: 0.8333},
+				{SK: "AAPL", PurchaseValue: 100, PortfolioPercentage: 0.0833},
+				{SK: "TSLA", PurchaseValue: 100, PortfolioPercentage: 0.0833},
+			},
+		},
+		"Test 2": {
+			[]database.OpenStockPosition{
+				{SK: "CASH", PurchaseValue: 8612311.44},
+				{SK: "AAPL", PurchaseValue: 234424.40},
+				{SK: "TSLA", PurchaseValue: 1023.3},
+			},
+			[]database.OpenStockPosition{
+				{SK: "CASH", PurchaseValue: 8612311.44, PortfolioPercentage: 0.9734},
+				{SK: "AAPL", PurchaseValue: 234424.40, PortfolioPercentage: 0.0265},
+				{SK: "TSLA", PurchaseValue: 1023.3, PortfolioPercentage: 0.0001},
+			},
+		},
+	}
+
+	for name, testCase := range tests {
+		t.Run(name, func(t *testing.T) {
+			calculatedRatios := CalculatePortfolioRatio(testCase.openPositions)
+			assert.Equal(t, testCase.expectedPositionRatios, calculatedRatios)
 		})
 	}
 }
