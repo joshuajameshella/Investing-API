@@ -27,10 +27,18 @@ func RoundToPrecision(input float64, precision uint) float64 {
 	return float64(rounded) / output
 }
 
+// RemovePositionFromPortfolio removes the given index from a slice of portfolio positions.
+func RemovePositionFromPortfolio(positions []database.OpenStockPosition, index uint) []database.OpenStockPosition {
+	if int(index) >= len(positions) {
+		return positions
+	}
+	return append(positions[:index], positions[index+1:]...)
+}
+
 // CombinePositions adds the data of an incoming trade to an existing position. (New Average price, total value, shares quantity...)
 func CombinePositions(openPosition database.OpenStockPosition, newTrade types.NewStockTrade) database.OpenStockPosition {
 	openPosition.Shares = openPosition.Shares + newTrade.Quantity
-	openPosition.PurchaseValue = openPosition.PurchaseValue + (newTrade.Price * float64(newTrade.Quantity))
+	openPosition.PurchaseValue = RoundToPrecision(openPosition.PurchaseValue+(newTrade.Price*float64(newTrade.Quantity)), 2)
 	openPosition.AveragePrice = RoundToPrecision(openPosition.PurchaseValue/float64(openPosition.Shares), 2)
 	return openPosition
 }

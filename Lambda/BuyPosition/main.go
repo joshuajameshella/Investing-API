@@ -65,7 +65,7 @@ func Process(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 			AveragePrice:        utils.RoundToPrecision(input.Price, 2),
 			PercentageReturn:    0,
 			Shares:              input.Quantity,
-			CurrentValue:        utils.RoundToPrecision(input.Price, 2),
+			CurrentStockPrice:   utils.RoundToPrecision(input.Price, 2),
 		}
 		if addRecordErr := database.AddNewPosition(svc, newPosition); addRecordErr != nil {
 			log.Printf("Error adding new position into database: %v\n", addRecordErr)

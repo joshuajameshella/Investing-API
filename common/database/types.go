@@ -9,5 +9,5 @@ type OpenStockPosition struct {
 	AveragePrice        float64 `json:"AveragePrice"`
 	PercentageReturn    float64 `json:"PercentageReturn"`
 	Shares              uint    `json:"Shares"`
-	CurrentValue        float64 `json:"CurrentValue"`
+	CurrentStockPrice   float64 `json:"CurrentStockPrice"`
 }

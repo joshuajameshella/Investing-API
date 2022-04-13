@@ -87,7 +87,7 @@ func TestCombinePositions(t *testing.T) {
 				AveragePrice:        150.00,
 				PercentageReturn:    0.1000,
 				Shares:              1,
-				CurrentValue:        150.00,
+				CurrentStockPrice:   150.00,
 			},
 			types.NewStockTrade{
 				Symbol:   "AAPL",
@@ -102,7 +102,7 @@ func TestCombinePositions(t *testing.T) {
 				AveragePrice:        175.00,
 				PercentageReturn:    0.1000,
 				Shares:              2,
-				CurrentValue:        150.00,
+				CurrentStockPrice:   150.00,
 			},
 		},
 	}
@@ -172,6 +172,44 @@ func TestCalculatePortfolioRatio(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			calculatedRatios := CalculatePortfolioRatio(testCase.openPositions)
 			assert.Equal(t, testCase.expectedPositionRatios, calculatedRatios)
+		})
+	}
+}
+
+// TestRemoveElementFromSlice ensures that the correct position is removed from the open portfolio positions.
+func TestRemovePositionFromPortfolio(t *testing.T) {
+	tests := map[string]struct {
+		inputSlice     []database.OpenStockPosition
+		indexToRemove  uint
+		expectedOutput []database.OpenStockPosition
+	}{
+		"General Check": {
+			[]database.OpenStockPosition{
+				{SK: "CASH", PurchaseValue: 8612311.44},
+				{SK: "AAPL", PurchaseValue: 234424.40},
+			},
+			1,
+			[]database.OpenStockPosition{
+				{SK: "CASH", PurchaseValue: 8612311.44},
+			},
+		},
+		"Invalid Index": {
+			[]database.OpenStockPosition{
+				{SK: "CASH", PurchaseValue: 8612311.44},
+				{SK: "AAPL", PurchaseValue: 234424.40},
+			},
+			5,
+			[]database.OpenStockPosition{
+				{SK: "CASH", PurchaseValue: 8612311.44},
+				{SK: "AAPL", PurchaseValue: 234424.40},
+			},
+		},
+	}
+
+	for name, testCase := range tests {
+		t.Run(name, func(t *testing.T) {
+			newSlice := RemovePositionFromPortfolio(testCase.inputSlice, testCase.indexToRemove)
+			assert.Equal(t, testCase.expectedOutput, newSlice)
 		})
 	}
 }

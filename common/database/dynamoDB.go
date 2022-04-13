@@ -60,6 +60,46 @@ func GetAllOpenPositions(svc *dynamodb.DynamoDB) ([]OpenStockPosition, error) {
 	return openPositions, nil
 }
 
+// GetOpenPosition ...
+func GetOpenPosition(svc *dynamodb.DynamoDB, symbol string) (OpenStockPosition, error) {
+	var openPositions OpenStockPosition
+
+	queryInput := &dynamodb.QueryInput{
+		TableName: aws.String("PORTFOLIO"),
+		KeyConditions: map[string]*dynamodb.Condition{
+			"PK": {
+				ComparisonOperator: aws.String("EQ"),
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{
+						S: aws.String("OPEN-POSITION"),
+					},
+				},
+			},
+			"SK": {
+				ComparisonOperator: aws.String("EQ"),
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{
+						S: aws.String(symbol),
+					},
+				},
+			},
+		},
+	}
+
+	result, queryErr := svc.Query(queryInput)
+	if queryErr != nil {
+		log.Printf("Error querying DynamoDB: %v\n", queryErr)
+		return openPositions, queryErr
+	}
+
+	if unmarshallErr := dynamodbattribute.UnmarshalListOfMaps(result.Items, &openPositions); unmarshallErr != nil {
+		log.Printf("Error unmarshalling DynamoDB response: %v\n", unmarshallErr)
+		return openPositions, unmarshallErr
+	}
+
+	return openPositions, nil
+}
+
 // AddNewPosition creates a new open portfolio position in the DynamoDB table.
 func AddNewPosition(svc *dynamodb.DynamoDB, record OpenStockPosition) error {
 	record.PK = "OPEN-POSITION"
@@ -102,8 +142,8 @@ func UpdateOpenPosition(svc *dynamodb.DynamoDB, record OpenStockPosition) error 
 			":shares": {
 				N: aws.String(fmt.Sprintf("%v", record.Shares)),
 			},
-			":currentValue": {
-				N: aws.String(fmt.Sprintf("%v", record.CurrentValue)),
+			":currentStockPrice": {
+				N: aws.String(fmt.Sprintf("%v", record.CurrentStockPrice)),
 			},
 		},
 		TableName: aws.String("PORTFOLIO"),
@@ -122,7 +162,7 @@ func UpdateOpenPosition(svc *dynamodb.DynamoDB, record OpenStockPosition) error 
 			"AveragePrice = :averagePrice, " +
 			"PercentageReturn = :percentageReturn, " +
 			"Shares = :shares, " +
-			"CurrentValue = :currentValue",
+			"CurrentStockPrice = :currentStockPrice",
 		),
 	}
 
@@ -131,5 +171,24 @@ func UpdateOpenPosition(svc *dynamodb.DynamoDB, record OpenStockPosition) error 
 		return err
 	}
 
+	return nil
+}
+
+func DeleteOpenPosition(svc *dynamodb.DynamoDB, record OpenStockPosition) error {
+	queryInput := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"PK": {
+				N: aws.String(record.PK),
+			},
+			"SK": {
+				S: aws.String(record.SK),
+			},
+		},
+		TableName: aws.String("PORTFOLIO"),
+	}
+	if _, err := svc.DeleteItem(queryInput); err != nil {
+		log.Printf("Got error calling DeleteItem: %s", err)
+		return err
+	}
 	return nil
 }
